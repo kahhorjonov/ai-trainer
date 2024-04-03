@@ -8,11 +8,12 @@ export async function PATCH(
 ) {
   const body = await request.json();
   const validation = patchScriptSchema.safeParse(body);
+
   if (!validation.success) {
     return NextResponse.json(validation.error.format(), { status: 400 });
   }
 
-  const { description } = body;
+  const { edited_caption } = body;
 
   const script = await prisma.script.findUnique({
     where: { id: parseInt(params.id) },
@@ -25,8 +26,12 @@ export async function PATCH(
   const updatedScript = await prisma.script.update({
     where: { id: script.id },
     data: {
-      status: "CHECKED",
-      description,
+      status:
+        script?.original_caption === edited_caption
+          ? "CHECKED_OK"
+          : "CHECKED_EDITED",
+      original_caption: script?.original_caption,
+      edited_caption,
     },
   });
 

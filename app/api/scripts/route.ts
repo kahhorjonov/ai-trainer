@@ -7,9 +7,8 @@ import { getScriptSchema, scriptSchema } from "../../validationSchemas";
 export async function POST(request: NextRequest) {
   const formData = await request.formData();
   const file = formData.get("audio") as File;
-
-  const description = formData.get("description") as String;
-  const validation = scriptSchema.safeParse({ description });
+  const original_caption = formData.get("original_caption") as string;
+  const validation = scriptSchema.safeParse({ original_caption });
 
   if (!validation.success) {
     return NextResponse.json(validation.error.format(), { status: 400 });
@@ -25,10 +24,18 @@ export async function POST(request: NextRequest) {
         buffer
       );
 
+      // Retrieve the host from the request
+      const host = request.headers.get("host");
+      // Determine the protocol
+      const protocol = request.headers.get("x-forwarded-proto") || "http";
+      // Construct the audio URL dynamically
+      const audioUrl = `${protocol}://${host}/audios/${filename}`;
+
       const newScript = await prisma.script.create({
         data: {
-          description: description.toString(),
-          audioUrl: `http://localhost:3000/audios/${filename}`,
+          original_caption: original_caption.toString(),
+          edited_caption: original_caption.toString(),
+          audioUrl: audioUrl,
         },
       });
 

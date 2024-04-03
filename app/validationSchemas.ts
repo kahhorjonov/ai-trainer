@@ -1,11 +1,11 @@
 import { z } from "zod";
 
 export const scriptSchema = z.object({
-  description: z.string().min(1, "Description is required.").max(65535),
+  original_caption: z.string().min(1, "Caption is required.").max(65535),
 });
 
 export const patchScriptSchema = z.object({
-  description: z.string().min(1).max(65535).optional(),
+  original_caption: z.string().min(1).max(65535).optional(),
 });
 
 export const getScriptSchema = z.object({

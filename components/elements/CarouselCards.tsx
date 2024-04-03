@@ -1,8 +1,5 @@
 "use client";
 
-import CheckOutlinedIcon from "@mui/icons-material/CheckOutlined";
-import DoNotDisturbAltOutlinedIcon from "@mui/icons-material/DoNotDisturbAltOutlined";
-import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import KeyboardDoubleArrowRightOutlinedIcon from "@mui/icons-material/KeyboardDoubleArrowRightOutlined";
 import PauseCircleOutlinedIcon from "@mui/icons-material/PauseCircleOutlined";
 import PlayCircleOutlinedIcon from "@mui/icons-material/PlayCircleOutlined";
@@ -32,9 +29,11 @@ const CarouselCards = ({
   scriptCount,
   totalCount,
 }: Props) => {
-  const [editing, setEditing] = useState(false);
-  const [description, setDescription] = useState(script?.description);
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [lastHotkey, setLastHotkey] = useState<string | null>(null);
+  const [editedCaption, setEditedCaption] = useState<string>(
+    script?.original_caption
+  );
+  const [isPlaying, setIsPlaying] = useState<boolean>(false);
 
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -51,14 +50,11 @@ const CarouselCards = ({
     router.push("?" + params.toString());
   };
 
-  const changeScript = async (description: string) => {
-    setDescription(description);
-  };
-
   const changeScriptStatus = async (id: string) => {
     try {
-      description &&
-        (await axios.patch(`/api/scripts/${id}`, { description: description }));
+      await axios.patch(`/api/scripts/${id}`, {
+        edited_caption: editedCaption,
+      });
       toast.success("Changes saved");
       changePage(page + 1);
     } catch (error) {
@@ -80,8 +76,45 @@ const CarouselCards = ({
     }
   };
 
+  const togglePlayPause = () => {
+    if (isPlaying) {
+      pauseAudio();
+    } else {
+      playAudio();
+    }
+  };
+
+  const handleKeyPress = (event: KeyboardEvent) => {
+    switch (event.key) {
+      case " ":
+        event.preventDefault(); // Prevent the default action
+        togglePlayPause();
+        setLastHotkey("Space (Play/Pause)");
+        break;
+      case "Enter":
+        changePage(page + 1);
+        setLastHotkey("Enter (Skip)");
+        break;
+      case "n":
+        changeScriptStatus(script.id.toString());
+        setLastHotkey("N (Next)");
+        break;
+      // Add more cases as needed
+    }
+  };
+
+  // Add event listener for keypress events
   useEffect(() => {
-    setDescription(script?.description);
+    window.addEventListener("keydown", handleKeyPress);
+
+    // Remove event listener on cleanup
+    return () => {
+      window.removeEventListener("keydown", handleKeyPress);
+    };
+  }, [isPlaying, page, scriptCount, script]); // Ensure the effect runs again if these dependencies change
+
+  useEffect(() => {
+    setEditedCaption(script?.original_caption);
   }, [script]);
 
   return (
@@ -98,46 +131,12 @@ const CarouselCards = ({
               centeredSlides
             >
               <SwiperSlide className="relative flex justify-center items-center">
-                <div className="flex justify-center items-center text-light w-[48rem] h-96 bg-slate-500 p-6 rounded-md overflow-y-auto">
-                  {editing ? (
-                    <textarea
-                      value={description}
-                      className="w-full h-[95%] max-h-[95%] min-h-[80%] rounded-md"
-                      onChange={(e) => setDescription(e.target.value)}
-                    />
-                  ) : (
-                    <p className="text-white text-xl text-center pt-6">
-                      {description}
-                    </p>
-                  )}
-                </div>
-
-                <div className="absolute top-2 right-6 flex items-center justify-center gap-2">
-                  {editing && scriptCount > 0 ? (
-                    <div className="flex items-center justify-center gap-2">
-                      <CheckOutlinedIcon
-                        className="fill-white"
-                        onClick={() => {
-                          changeScript(description);
-                          setEditing(false);
-                        }}
-                      />
-                      <DoNotDisturbAltOutlinedIcon
-                        className="fill-white"
-                        onClick={() => {
-                          setDescription(script?.description);
-                          setEditing(false);
-                        }}
-                      />
-                    </div>
-                  ) : (
-                    scriptCount > 0 && (
-                      <EditOutlinedIcon
-                        className="fill-white"
-                        onClick={() => setEditing(true)}
-                      />
-                    )
-                  )}
+                <div className="flex justify-center items-center text-white w-[48rem] h-96 bg-slate-500 p-6 py-8 rounded-md overflow-y-auto">
+                  <textarea
+                    value={editedCaption}
+                    className="resize-none text-center flex items-center w-full h-full border-none bg-slate-500 text-white outline-none"
+                    onChange={(e) => setEditedCaption(e.target.value)}
+                  />
                 </div>
               </SwiperSlide>
             </Swiper>
@@ -156,6 +155,14 @@ const CarouselCards = ({
               <div className="!flex !justify-center !items-center !w-6 !h-6 !rounded-full !bg-zinc-500 !text-white text-sm">
                 <p>{scriptCount > 0 ? page : 0}</p>
               </div>
+            </div>
+
+            <div className="w-24">
+              {lastHotkey && (
+                <div className="text-center mt-4">
+                  <p>Last Action: {lastHotkey}</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -179,7 +186,7 @@ const CarouselCards = ({
             <div className="w-28 h-28 rounded-full bg-slate-500" />
             <audio
               ref={audioRef}
-              src={script.audioUrl || ""}
+              src={script?.audioUrl || ""}
               onEnded={() => setIsPlaying(false)} // Set isPlaying to false when audio ends
             />
 
@@ -207,7 +214,7 @@ const CarouselCards = ({
 
           <div className="flex flex-col items-end gap-4">
             <button
-              disabled={scriptCount <= 0 || scriptCount === page}
+              disabled={scriptCount <= 0 || page > scriptCount + 1}
               className="w-24 h-8 border border-zinc-400 rounded-3xl"
               onClick={() => changeScriptStatus(script.id.toString())}
             >
