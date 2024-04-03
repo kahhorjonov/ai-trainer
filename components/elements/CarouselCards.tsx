@@ -30,9 +30,7 @@ const CarouselCards = ({
   totalCount,
 }: Props) => {
   const [lastHotkey, setLastHotkey] = useState<string | null>(null);
-  const [editedCaption, setEditedCaption] = useState<string>(
-    script?.original_caption
-  );
+  const [editedCaption, setEditedCaption] = useState(script?.original_caption);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
 
   const router = useRouter();
@@ -43,8 +41,8 @@ const CarouselCards = ({
   //   if (pageSize <= 1) return null;
 
   const changePage = (page: number) => {
+    setEditedCaption("");
     const params = new URLSearchParams(searchParams);
-
     params.set("page", page.toString());
     params.set("pageSize", pageSize.toString());
     router.push("?" + params.toString());
@@ -53,7 +51,10 @@ const CarouselCards = ({
   const changeScriptStatus = async (id: string) => {
     try {
       await axios.patch(`/api/scripts/${id}`, {
-        edited_caption: editedCaption,
+        edited_caption:
+          script.original_caption === editedCaption
+            ? script.original_caption
+            : editedCaption,
       });
       toast.success("Changes saved");
       changePage(page + 1);
@@ -115,7 +116,7 @@ const CarouselCards = ({
 
   useEffect(() => {
     setEditedCaption(script?.original_caption);
-  }, [script]);
+  }, [script?.id]);
 
   return (
     <>
