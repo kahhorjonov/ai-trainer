@@ -9,9 +9,9 @@ const Navbar = () => {
   const currentPath = usePathname();
 
   const links = [
-    { label: "Speak", href: "/speak" },
+    // { label: "Speak", href: "/speak" },
     { label: "Listen", href: "/" },
-    { label: "Write", href: "/write" },
+    // { label: "Write", href: "/write" },
   ];
 
   return (
