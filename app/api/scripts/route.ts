@@ -24,6 +24,8 @@ export async function POST(request: NextRequest) {
         buffer
       );
 
+      console.log("3");
+
       // Retrieve the host from the request
       const host = request.headers.get("host");
       // Determine the protocol
